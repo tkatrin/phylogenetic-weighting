@@ -1,0 +1,35 @@
+data_url: "https://www.ebi.ac.uk/goldman-srv/pandit/Pandit/data/Pandit17.0.gz"
+data_path: "data/Pandit17.0.gz"
+
+work_dir: "results"
+model_dir: "models"
+
+min_ano: 100
+n_families: 300
+target_mean_ano: 500
+random_state: 42
+test_size: 0.2
+valid_size: 0.25
+
+device: "auto"
+max_length: 1024
+pca_components: 48
+max_pairs_per_family: 3000
+max_tree_distance_pairs: 200000
+
+models:
+  esm2_8m: "facebook/esm2_t6_8M_UR50D"
+  esm2_35m: "facebook/esm2_t12_35M_UR50D"
+
+model_keys_to_run:
+  - esm2_8m
+  - esm2_35m
+
+phylo_methods:
+  - branch_sharing
+  - mean_tree_distance
+  - terminal_branch
+
+knn_values: [1, 2, 3, 5, 10, 20]
+density_k_values: [2, 3, 5, 10]
+sigma_values: [0.001, 0.002, 0.005, 0.01, 0.02]
