@@ -2,31 +2,24 @@
 
 Проект посвящён исследованию того, можно ли использовать protein language models для приближённого восстановления филогенетических весов белковых последовательностей.
 
-Основная идея:
+Основная идея работы:
 
 ```text
 protein sequence -> PLM embedding -> phylogenetic weight
 ```
 
-В работе используются:
-- phylogenetic weighting methods;
-- protein language models;
-- unsupervised density methods;
-- supervised regression;
-- pairwise ranking;
-- feature ablation;
-- анализ зависимости качества от размера семейства.
+В проекте исследуется, насколько филогенетическая информация сохраняется в embedding space современных protein language models и можно ли использовать эту информацию для восстановления различных вариантов phylogenetic weighting без явного построения дерева.
 
-## Основные задачи проекта
+## Что исследуется
 
-Проект исследует несколько вопросов:
+Работа фокусируется на нескольких вопросах:
 
-1. Содержат ли PLM embeddings филогенетический сигнал.
-2. Насколько embedding distance связан с tree distance.
-3. Можно ли восстановить phylogenetic weights по embeddings.
-4. Какие локальные признаки embedding space наиболее информативны.
-5. Как качество зависит от размера семейства.
-6. Насколько pairwise ranking лучше regression.
+- содержат ли PLM embeddings филогенетический сигнал;
+- насколько embedding distance связан с tree distance;
+- можно ли восстанавливать phylogenetic weights по embeddings;
+- какие локальные свойства embedding space наиболее информативны;
+- как качество зависит от размера семейства;
+- насколько ranking-based подходы лучше regression.
 
 ## Используемые модели
 
@@ -35,11 +28,38 @@ protein sequence -> PLM embedding -> phylogenetic weight
 - ESM2 8M
 - ESM2 35M
 
-### Phylogenetic targets
+### Phylogenetic weighting targets
 
 - branch sharing
 - mean tree distance
 - terminal branch
+
+## Используемые подходы
+
+### Unsupervised methods
+
+Используются density-based методы на embedding space:
+- mean distance;
+- kNN distance;
+- kernel density;
+- graph density.
+
+### Supervised methods
+
+Используются:
+- regression;
+- pairwise ranking;
+- gradient boosting rankers;
+- feature ablation.
+
+## Данные
+
+В качестве источника белковых семейств используется база Pandit.
+
+Конфигурация по умолчанию:
+- 300 семейств;
+- средний размер семейства около 500 последовательностей;
+- разделение train/test выполняется по семействам, а не по отдельным последовательностям.
 
 ## Структура репозитория
 
@@ -48,39 +68,33 @@ configs/
     конфигурации экспериментов
 
 scripts/
-    точки запуска отдельных этапов pipeline
+    запуск отдельных этапов pipeline
 
 src/plm_phylo_weighting/
 
     data/
         загрузка и парсинг Pandit
-        выбор семейств
 
     weights/
-        phylogenetic weighting
-        classical weighting
-        PLM density weighting
+        методы взвешивания
 
     plm/
-        загрузка ESM2
-        embedding cache
+        работа с ESM2 и embeddings
 
     models/
-        feature engineering
-        regression models
-        ranking models
+        regression и ranking модели
 
     experiments/
-        отдельные этапы экспериментов
+        экспериментальные блоки
 
     evaluation/
         метрики и корреляции
 
-    summaries/
-        итоговые таблицы
-
     plots/
         построение графиков
+
+    summaries/
+        итоговые таблицы
 
 data/
     локальные данные
@@ -92,25 +106,31 @@ models/
     сохранённые модели
 ```
 
-## Новые блоки анализа
+## Основные экспериментальные блоки
 
-В текущей версии проекта добавлены:
+### Phylogenetic signal
 
+Исследуется связь:
 - embedding distance vs tree distance;
-- local PLM features vs phylogenetic weights;
-- feature ablation;
-- size analysis;
-- сравнение разных phylogenetic targets;
-- сравнение нескольких ESM2 моделей.
+- local PLM features vs phylogenetic weights.
 
-## Конфигурация по умолчанию
+### Supervised prediction
 
-```yaml
-n_families: 300
-target_mean_ano: 500
-```
+Исследуется восстановление phylogenetic weights с помощью:
+- regression;
+- pairwise ranking;
+- boosting rankers.
 
-Используется разделение train/test по семействам, а не по отдельным последовательностям.
+### Feature ablation
+
+Проверяется вклад:
+- PCA features;
+- density features;
+- rank features.
+
+### Size analysis
+
+Исследуется влияние размера семейства на качество модели.
 
 ## Установка
 
@@ -125,35 +145,10 @@ pip install -e .
 python scripts/run_full_pipeline.py --config configs/default.yaml
 ```
 
-## Запуск отдельных этапов
-
-```bash
-python scripts/run_prepare_data.py --config configs/default.yaml
-
-python scripts/run_compute_embeddings.py --config configs/default.yaml
-
-python scripts/run_unsupervised.py --config configs/default.yaml
-
-python scripts/run_phylo_signal.py --config configs/default.yaml
-
-python scripts/run_supervised.py --config configs/default.yaml
-
-python scripts/run_local_feature_signal.py --config configs/default.yaml
-
-python scripts/run_feature_ablation.py --config configs/default.yaml
-
-python scripts/run_rankers.py --config configs/default.yaml
-
-python scripts/run_size_analysis.py --config configs/default.yaml
-
-python scripts/run_make_summary.py --config configs/default.yaml
-```
-
 ## Основные выходные файлы
 
 ```text
 selected_families.csv
-family_checks.csv
 phylo_weights.csv
 
 embedding_tree_distance_correlation_summary.csv
@@ -175,10 +170,15 @@ final_summary.csv
 
 ## Идея работы
 
-В отличие от большинства работ по теме PLM и филогении, проект исследует не восстановление дерева напрямую, а задачу восстановления phylogenetic weighting.
+Большинство существующих работ по теме PLM и филогении исследуют:
+- reconstruction of phylogenetic trees;
+- evolutionary distances;
+- homology detection.
 
-Особый акцент сделан на:
-- локальной структуре embedding space;
+В отличие от них, данный проект исследует задачу восстановления phylogenetic weighting по embedding space protein language models.
+
+Основной акцент делается на:
+- локальной геометрии embedding space;
 - density-based признаках;
 - pairwise ranking;
-- переносимости между семействами.
+- переносимости между различными белковыми семействами.
